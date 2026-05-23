@@ -16,6 +16,9 @@ coverage.txt
 # Project-local tools (make setup)
 bin/
 
+# goreleaser output
+dist/
+
 # Project-local glide cache, RE: https://github.com/Masterminds/glide/issues/736
 .glide/
 

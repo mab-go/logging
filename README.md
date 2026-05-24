@@ -1,5 +1,13 @@
 # mab-go/logging
 
+<p align="center">
+  <a href="https://github.com/mab-go/logging/actions"><img src="https://img.shields.io/github/check-runs/mab-go/logging/main?style=flat&labelColor=555555&label=checks" alt="Build Status" /></a>
+  <a href="https://goreportcard.com/report/github.com/mab-go/logging"><img src="https://goreportcard.com/badge/github.com/mab-go/logging" alt="Go Report Card" /></a>
+  <a href="https://pkg.go.dev/github.com/mab-go/logging"><img src="https://img.shields.io/badge/-reference-00ADD8?style=flat&logo=go&logoColor=white&labelColor=555555" alt="Go Reference" /></a>
+  <a href="https://deepwiki.com/mab-go/logging"><img src="https://img.shields.io/badge/DeepWiki-logging-blue?style=flat&logoColor=white&labelColor=555555" alt="Ask DeepWiki"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/github/license/mab-go/logging" alt="License: MIT" /></a>
+</p>
+
 A small structured-logging library built on `log/slog` (Go 1.21+ stdlib).
 Provides a `Logger` interface with structured field support, context injection,
 and an `Event` type for tagging records with a stable event identifier.

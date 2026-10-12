@@ -24,3 +24,7 @@ dist/
 
 # IntelliJ project directory
 .idea/
+
+# Claude Code worktrees and per-user settings
+/.claude/worktrees/
+/.claude/settings.local.json

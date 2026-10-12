@@ -6,13 +6,13 @@ BIN         := ./bin
 GOLANGCI    := $(BIN)/golangci-lint
 GOIMPORTS   := $(BIN)/goimports
 # Pinned golangci-lint release for reproducible `make lint`; bump if unsupported on current Go (see go.mod).
-# v2.6.x binaries were built with Go 1.25 and reject go.mod go 1.26+; use v2.9+ for Go 1.26 toolchains.
-GOLANGCI_LINT_VERSION ?= v2.11.3
+# golangci-lint v2.14.0 and goimports v0.50.0 need Go >= 1.26 to build; go.mod's toolchain line provides it.
+GOLANGCI_LINT_VERSION ?= v2.14.0
 # Pinned goimports (golang.org/x/tools); bump if `make fmt` fails or is incompatible with go.mod Go version.
-GOIMPORTS_VERSION ?= v0.38.0
+GOIMPORTS_VERSION ?= v0.50.0
 
 # golangci-lint must be built with Go >= go.mod; auto follows deps' older go version, so pin to module Go.
-# Prefer explicit `toolchain` directive (e.g. go1.26.1); `go 1.26` alone is not a valid GOTOOLCHAIN value.
+# Prefer explicit `toolchain` directive (e.g. go1.27.2); `go 1.26` alone is not a valid GOTOOLCHAIN value.
 GO_MOD_VERSION := $(shell grep -E '^go ' go.mod | head -1 | awk '{print $$2}')
 TOOLCHAIN_FROM_MOD := $(shell grep -E '^toolchain ' go.mod | head -1 | awk '{print $$2}')
 TOOLCHAIN_FOR_TOOLS ?= $(if $(TOOLCHAIN_FROM_MOD),$(TOOLCHAIN_FROM_MOD),go$(GO_MOD_VERSION))

@@ -47,7 +47,7 @@ go.mod                — module github.com/mab-go/logging; go 1.21; no deps
 README.md             — usage doc with paste-ready snippet
 LICENSE               — MIT
 Makefile              — build/test/lint targets (run 'make help' to see all)
-.github/workflows/    — CI: test, lint, cyclomatic-complexity
+.github/workflows/    — CI: test, lint; release
 .golangci.yaml        — golangci-lint v2 config
 codecov.yml           — informational coverage status (non-blocking)
 .editorconfig         — tabs for Go/Makefile, 2-space for everything else
@@ -150,6 +150,12 @@ key is unexported and collision-free.
   `panicFunc`. Tests override them with capturing closures (via `t.Cleanup` to
   restore originals) so the test binary is never terminated. Do not change this
   seam without updating the corresponding tests.
+- **Tests call `t.Parallel()`** (enforced by `paralleltest` and `tparallel`).
+  A test that mutates package state (`exitFunc`, `panicFunc`, the default
+  logger) stays sequential, with `//nolint:paralleltest // <reason>` on its own
+  line above the `func`. Parallel table subtests copy the loop variable
+  (`tc := tc`): `go.mod` is `go 1.21`, where loop variables are shared across
+  iterations.
 - **`Example*` functions** (`Example`, `ExampleLogger_Info`,
   `ExampleLogger_WithError`) exist for godoc discoverability. They do **not**
   carry `// Output:` comments because timestamps in slog output are
@@ -167,14 +173,17 @@ Treat any change as incomplete until **`make test lint`** passes.
 | `make lint`       | golangci-lint (run `make setup` first if not installed) |
 | `make fmt`        | goimports formatting                                    |
 | `make vet`        | `go vet ./...`                                          |
-| `make cyclo`      | gocyclo, threshold 10                                   |
-| `make setup`      | install golangci-lint, goimports, gocyclo into `./bin`  |
+| `make setup`      | install golangci-lint, goimports into `./bin`           |
 | `make test:cover` | coverage report, opens HTML locally                     |
 | `make help`       | full target list with descriptions                      |
 
 Tool versions are pinned in the Makefile (golangci-lint v2.11.3, goimports
-v0.38.0, gocyclo v0.6.0). If `make lint` surfaces findings, fix the code rather
-than relaxing the config.
+v0.38.0). If `make lint` surfaces findings, fix the code rather than relaxing
+the config.
+
+Complexity limits run inside `make lint`: gocyclo 10 and cyclop 12 (tests
+included), plus gocognit and nestif (tests exempt). A `//nolint` must name its
+linter and give a reason (`//nolint:paralleltest // mutates exitFunc`).
 
 ---
 
@@ -199,13 +208,13 @@ than relaxing the config.
 
 After any structural change, update the corresponding documentation:
 
-| Change made                                       | What to review/update                                          |
-|---------------------------------------------------|----------------------------------------------------------------|
-| New exported symbol added                         | godoc on the symbol; mention in README if user-facing          |
-| New file in the package                           | Project Structure tree in this file                            |
-| Event semantics change                            | Key Concepts → Event type section and the README               |
-| New test seam added (like `exitFunc`/`panicFunc`) | Testing section in this file                                   |
-| New Makefile target                               | Build & Lint table in this file                                |
-| Go floor raised                                   | go.mod, README install section, and the Constraints note above |
+| Change made                                       | What to review/update                                                                                                             |
+|---------------------------------------------------|-----------------------------------------------------------------------------------------------------------------------------------|
+| New exported symbol added                         | godoc on the symbol; mention in README if user-facing                                                                             |
+| New file in the package                           | Project Structure tree in this file                                                                                               |
+| Event semantics change                            | Key Concepts → Event type section and the README                                                                                  |
+| New test seam added (like `exitFunc`/`panicFunc`) | Testing section in this file                                                                                                      |
+| New Makefile target                               | Build & Lint table in this file                                                                                                   |
+| Go floor raised                                   | go.mod, README install section, the Constraints note above, and `.golangci.yaml` `run.go` (at 1.22+, enable copyloopvar/intrange) |
 
 Only update docs when something has genuinely changed — no cosmetic edits.

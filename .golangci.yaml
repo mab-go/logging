@@ -1,12 +1,25 @@
+# golangci-lint v2 -- https://golangci-lint.run/docs/configuration/file/
 version: "2"
+
+run:
+  timeout: 3m
+  # The module's language version (go.mod `go`), not the dev `toolchain`; otherwise
+  # version-gated linters such as copyloopvar assume Go 1.22+ loop semantics.
+  go: "1.21"
+
 linters:
+  default: standard
+  # copyloopvar and intrange need Go 1.22+ (see run.go); add them if the floor rises.
   enable:
+    - contextcheck
     - cyclop
     - decorder
     - depguard
+    - durationcheck
     - errname
     - errorlint
     - exhaustive
+    - forcetypeassert
     - funlen
     - gocognit
     - gocritic
@@ -20,45 +33,49 @@ linters:
     - nilerr
     - nilnil
     - nlreturn
+    - nolintlint
+    - paralleltest
+    - perfsprint
     - prealloc
+    - predeclared
+    - reassign
     - revive
-    - staticcheck
     - thelper
+    - tparallel
+    - unconvert
     - unparam
+    - usestdlibvars
+    - usetesting
     - wastedassign
     - whitespace
   settings:
+    cyclop:
+      # cyclop counts each switch case (gocyclo counts the switch once); 12 allows
+      # clean switch dispatchers.
+      max-complexity: 12
     depguard:
       rules:
         main:
           allow:
             - $gostd
             - github.com/mab-go/logging
-    gosec:
-      excludes:
-        - G115
+    gocyclo:
+      min-complexity: 10
+    govet:
+      enable-all: true
+      disable: [fieldalignment] # struct layout for memory, not correctness
+    nolintlint:
+      require-explanation: true
+      require-specific: true
+    staticcheck:
+      checks: ["all"]
   exclusions:
-    generated: lax
-    presets:
-      - comments
-      - common-false-positives
-      - legacy
-      - std-error-handling
+    generated: strict
     rules:
-      - linters:
-          - lll
-        path: (.+)_test\.go
-    paths:
-      - third_party$
-      - builtin$
-      - examples$
+      # Tests run long but simply. gocyclo and cyclop still apply to them.
+      - path: _test\.go
+        linters: [gocognit, lll, nestif]
+
 formatters:
   enable:
-    - gci
     - goimports
-  exclusions:
-    generated: lax
-    paths:
-      - third_party$
-      - builtin$
-      - examples$

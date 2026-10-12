@@ -7,6 +7,8 @@ import (
 )
 
 func TestContextRoundTrip(t *testing.T) {
+	t.Parallel()
+
 	var buf bytes.Buffer
 	log := NewLogger(Config{Level: InfoLevel, Output: &buf})
 
@@ -22,6 +24,8 @@ func TestContextRoundTrip(t *testing.T) {
 }
 
 func TestContextMissingLogger(t *testing.T) {
+	t.Parallel()
+
 	got, created := FromContext(context.Background())
 
 	if !created {

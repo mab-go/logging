@@ -177,8 +177,8 @@ Treat any change as incomplete until **`make test lint`** passes.
 | `make test:cover` | coverage report, opens HTML locally                     |
 | `make help`       | full target list with descriptions                      |
 
-Tool versions are pinned in the Makefile (golangci-lint v2.11.3, goimports
-v0.38.0). If `make lint` surfaces findings, fix the code rather than relaxing
+Tool versions are pinned in the Makefile (golangci-lint v2.14.0, goimports
+v0.50.0). If `make lint` surfaces findings, fix the code rather than relaxing
 the config.
 
 Complexity limits run inside `make lint`: gocyclo 10 and cyclop 12 (tests
@@ -197,10 +197,10 @@ linter and give a reason (`//nolint:paralleltest // mutates exitFunc`).
   functions for godoc, plus a snippet in the README.
 - **Go 1.21 floor.** Do not raise the `go` directive without a concrete reason;
   the floor exists to maximize consumer compatibility. Note that `go.mod` also
-  carries a `toolchain go1.26.1` directive — this is **dev-time only** and does
-  not constrain consumers. It exists because the pinned `golangci-lint` v2.11.3
-  requires Go ≥ 1.25 to build; if you bump `golangci-lint` and it relaxes that
-  requirement, the `toolchain` directive can be lowered or removed.
+  carries a `toolchain go1.27.2` directive — this is **dev-time only** and does
+  not constrain consumers. It exists because the pinned `golangci-lint` v2.14.0
+  and `goimports` v0.50.0 require Go ≥ 1.26 to build; if you bump them and they
+  relax that requirement, the `toolchain` directive can be lowered or removed.
 
 ---
 

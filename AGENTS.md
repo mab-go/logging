@@ -165,10 +165,12 @@ key is unexported and collision-free.
 
 ## Build & Lint
 
-Treat any change as incomplete until **`make test lint`** passes.
+Treat any change as incomplete until **`make check`** passes (`mod:verify`,
+`vet`, `lint`, `test`; run `make setup` once first).
 
 | Command           | Purpose                                                 |
 |-------------------|---------------------------------------------------------|
+| `make check`      | everything CI runs: mod:verify, vet, lint, test         |
 | `make test`       | `go test -race ./...`                                   |
 | `make lint`       | golangci-lint (run `make setup` first if not installed) |
 | `make fmt`        | goimports formatting                                    |

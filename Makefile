@@ -20,7 +20,7 @@ TOOLCHAIN_FOR_TOOLS ?= $(if $(TOOLCHAIN_FROM_MOD),$(TOOLCHAIN_FROM_MOD),go$(GO_M
 RACE ?= 1
 OPEN ?= $(shell command -v xdg-open 2>/dev/null || echo "open")
 
-.PHONY: help \
+.PHONY: help check \
         setup \
         test test\:cover \
         lint lint\:fix fmt vet \
@@ -37,11 +37,12 @@ help: ## Show available commands
 		/^#-+$$/ { next } \
 		/^# [A-Za-z]/ { section = substr($$0, 3); next } \
 		/^[a-zA-Z_:\\-]+:.*## / { \
-			gsub(/\\:/, ":", $$0); \
 			match($$0, /## /); \
 			desc = substr($$0, RSTART + 3); \
 			prefix = substr($$0, 1, RSTART - 1); \
-			gsub(/: [^:]*$$/, "", prefix); \
+			gsub(/\\:/, "\x01", prefix); \
+			sub(/: .*/, "", prefix); \
+			gsub(/\x01/, ":", prefix); \
 			target = prefix; \
 			targets[section] = targets[section] sprintf("  \033[36m%-22s\033[0m %s\n", target, desc); \
 			order[section] = order[section] ? order[section] : ++count; \
@@ -57,6 +58,8 @@ help: ## Show available commands
 				} \
 			} \
 		}' $(MAKEFILE_LIST)
+
+check: mod\:verify vet lint test ## Run every check CI runs: mod:verify, vet, lint, test
 
 #------------------------------------------------------------------------------
 # Setup

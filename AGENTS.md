@@ -51,7 +51,7 @@ Makefile              — build/test/lint targets (run 'make help' to see all)
 .golangci.yaml        — golangci-lint v2 config
 codecov.yml           — informational coverage status (non-blocking)
 .editorconfig         — tabs for Go/Makefile, 2-space for everything else
-.gitignore            — standard Go ignores
+.gitignore            — standard Go ignores, plus Claude Code worktrees and local settings
 CLAUDE.md             — symlink → AGENTS.md
 ```
 

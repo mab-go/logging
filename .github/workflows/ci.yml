@@ -2,39 +2,66 @@ name: CI
 
 on:
   push:
+    branches: [main]
   pull_request:
 
 permissions:
   contents: read
-  id-token: write
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
-  test:
-    name: test
-    runs-on: ubuntu-latest
+  check:
+    name: check
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      id-token: write # Codecov upload via OIDC, no token secret
     steps:
-      - uses: actions/checkout@v5
-      - uses: actions/setup-go@v6
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
           go-version-file: go.mod
-          cache: true
-      - run: go build ./...
-      - run: go test -race -coverprofile=coverage.out -covermode=atomic ./...
-      - uses: codecov/codecov-action@v5
+
+      - name: Install Go tools
+        run: make setup
+
+      - name: Verify modules, vet and lint
+        run: make mod:verify vet lint
+
+      - name: Test with coverage
+        run: make test:cover
+
+      - uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7.1.1
         with:
           use_oidc: true
           files: coverage.out
           fail_ci_if_error: true
 
-  lint:
-    name: lint
-    runs-on: ubuntu-latest
+  floor:
+    name: go1.21 floor
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    env:
+      # Without this, go1.21 switches to go.mod's toolchain (go1.27.2) and the floor goes untested.
+      GOTOOLCHAIN: local
     steps:
-      - uses: actions/checkout@v5
-      - uses: actions/setup-go@v6
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          go-version-file: go.mod
-          cache: true
-      - uses: golangci/golangci-lint-action@v9
+          persist-credentials: false
+
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
-          version: v2.14.0
+          go-version: "1.21.13"
+
+      - name: Confirm Go 1.21
+        run: go version | grep -q 'go1.21.13 ' || { go version; exit 1; }
+
+      - name: Vet and test
+        run: make vet test

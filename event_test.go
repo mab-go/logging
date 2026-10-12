@@ -14,6 +14,8 @@ func newTestLogger(buf *bytes.Buffer) Logger {
 }
 
 func TestEventSetsField(t *testing.T) {
+	t.Parallel()
+
 	var buf bytes.Buffer
 	log := newTestLogger(&buf)
 
@@ -26,6 +28,8 @@ func TestEventSetsField(t *testing.T) {
 }
 
 func TestEventAsMessage(t *testing.T) {
+	t.Parallel()
+
 	var buf bytes.Buffer
 	log := newTestLogger(&buf)
 
@@ -38,6 +42,8 @@ func TestEventAsMessage(t *testing.T) {
 }
 
 func TestPlainStringNoEventField(t *testing.T) {
+	t.Parallel()
+
 	var buf bytes.Buffer
 	log := newTestLogger(&buf)
 
@@ -53,6 +59,8 @@ func TestPlainStringNoEventField(t *testing.T) {
 }
 
 func TestEventWithFields(t *testing.T) {
+	t.Parallel()
+
 	var buf bytes.Buffer
 	log := newTestLogger(&buf)
 
@@ -68,6 +76,8 @@ func TestEventWithFields(t *testing.T) {
 }
 
 func TestEventWithMultipleFields(t *testing.T) {
+	t.Parallel()
+
 	var buf bytes.Buffer
 	log := newTestLogger(&buf)
 
@@ -80,6 +90,8 @@ func TestEventWithMultipleFields(t *testing.T) {
 }
 
 func TestEventWithError(t *testing.T) {
+	t.Parallel()
+
 	var buf bytes.Buffer
 	log := newTestLogger(&buf)
 
@@ -95,6 +107,8 @@ func TestEventWithError(t *testing.T) {
 }
 
 func TestEmptyArgsNoEvent(t *testing.T) {
+	t.Parallel()
+
 	var buf bytes.Buffer
 	log := newTestLogger(&buf)
 
@@ -107,6 +121,8 @@ func TestEmptyArgsNoEvent(t *testing.T) {
 }
 
 func TestEventAllLevels(t *testing.T) {
+	t.Parallel()
+
 	levels := []struct {
 		name string
 		call func(Logger)
@@ -118,7 +134,9 @@ func TestEventAllLevels(t *testing.T) {
 	}
 
 	for _, tt := range levels {
+		tt := tt // go.mod is go 1.21: loop variables are shared across iterations
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			var buf bytes.Buffer
 			log := newTestLogger(&buf)
 
@@ -133,6 +151,8 @@ func TestEventAllLevels(t *testing.T) {
 }
 
 func TestEmptyEventIgnored(t *testing.T) {
+	t.Parallel()
+
 	var buf bytes.Buffer
 	log := newTestLogger(&buf)
 

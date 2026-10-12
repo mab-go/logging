@@ -11,6 +11,8 @@ import (
 )
 
 func TestLevelFiltering(t *testing.T) {
+	t.Parallel()
+
 	var buf bytes.Buffer
 	log := NewLogger(Config{Level: WarnLevel, Output: &buf})
 
@@ -33,6 +35,8 @@ func TestLevelFiltering(t *testing.T) {
 }
 
 func TestFormatArgs(t *testing.T) {
+	t.Parallel()
+
 	cases := []struct {
 		name string
 		args []any
@@ -45,7 +49,9 @@ func TestFormatArgs(t *testing.T) {
 		{"multi non-format", []any{1, 2, 3}, "1 2 3"},
 	}
 	for _, tc := range cases {
+		tc := tc // go.mod is go 1.21: loop variables are shared across iterations
 		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
 			if got := formatArgs(tc.args); got != tc.want {
 				t.Errorf("formatArgs(%v) = %q; want %q", tc.args, got, tc.want)
 			}
@@ -54,6 +60,8 @@ func TestFormatArgs(t *testing.T) {
 }
 
 func TestWithErrorWrapped(t *testing.T) {
+	t.Parallel()
+
 	var buf bytes.Buffer
 	log := NewLogger(Config{Level: InfoLevel, Output: &buf})
 
@@ -71,6 +79,8 @@ func TestWithErrorWrapped(t *testing.T) {
 }
 
 func TestWithErrorNil(t *testing.T) {
+	t.Parallel()
+
 	var buf bytes.Buffer
 	log := NewLogger(Config{Level: InfoLevel, Output: &buf})
 
@@ -83,6 +93,8 @@ func TestWithErrorNil(t *testing.T) {
 }
 
 func TestCopyIndependence(t *testing.T) {
+	t.Parallel()
+
 	var buf bytes.Buffer
 	base := NewLogger(Config{Level: InfoLevel, Output: &buf}).WithField("base", "yes")
 	cp := base.Copy().WithField("copy", "yes")
@@ -105,6 +117,7 @@ func TestCopyIndependence(t *testing.T) {
 	}
 }
 
+//nolint:paralleltest // mutates the default logger
 func TestSetDefaultConfigResets(t *testing.T) {
 	origConfig := defaultConfig
 	origLogger := defaultLogger
@@ -127,6 +140,7 @@ func TestSetDefaultConfigResets(t *testing.T) {
 	}
 }
 
+//nolint:paralleltest // mutates exitFunc
 func TestFatalCallsExitAndLogs(t *testing.T) {
 	origExit := exitFunc
 	t.Cleanup(func() { exitFunc = origExit })
@@ -164,6 +178,8 @@ func TestFatalCallsExitAndLogs(t *testing.T) {
 // TestPanicDefaultBehavior is the only test that does NOT override panicFunc;
 // it verifies the default behavior actually panics with the formatted message.
 func TestPanicDefaultBehavior(t *testing.T) {
+	t.Parallel()
+
 	var buf bytes.Buffer
 	log := NewLogger(Config{Level: DebugLevel, Output: &buf})
 
@@ -192,6 +208,7 @@ func TestPanicDefaultBehavior(t *testing.T) {
 	log.Panic("boom %d", 42)
 }
 
+//nolint:paralleltest // mutates panicFunc
 func TestPanicCallsPanicAndLogs(t *testing.T) {
 	origPanic := panicFunc
 	t.Cleanup(func() { panicFunc = origPanic })
@@ -218,6 +235,8 @@ func TestPanicCallsPanicAndLogs(t *testing.T) {
 }
 
 func TestEventAttrHelper(t *testing.T) {
+	t.Parallel()
+
 	e := Event("system.ready")
 	attr := e.Attr()
 	if attr.Key != "event" {
@@ -233,6 +252,8 @@ func TestEventAttrHelper(t *testing.T) {
 }
 
 func TestLevelString(t *testing.T) {
+	t.Parallel()
+
 	cases := []struct {
 		lvl  Level
 		want string
@@ -252,6 +273,8 @@ func TestLevelString(t *testing.T) {
 }
 
 func TestLevelStringPanicsOnInvalid(t *testing.T) {
+	t.Parallel()
+
 	defer func() {
 		if r := recover(); r == nil {
 			t.Error("expected panic for invalid Level value")
@@ -261,6 +284,8 @@ func TestLevelStringPanicsOnInvalid(t *testing.T) {
 }
 
 func TestLevelSlogLevelPanicsOnInvalid(t *testing.T) {
+	t.Parallel()
+
 	defer func() {
 		if r := recover(); r == nil {
 			t.Error("expected panic for invalid Level value")
@@ -270,6 +295,8 @@ func TestLevelSlogLevelPanicsOnInvalid(t *testing.T) {
 }
 
 func TestReplaceLevelNameIgnoresNonLevelKey(t *testing.T) {
+	t.Parallel()
+
 	a := slog.String("other", "value")
 	got := replaceLevelName(nil, a)
 	if got.Key != "other" || got.Value.String() != "value" {
@@ -278,6 +305,8 @@ func TestReplaceLevelNameIgnoresNonLevelKey(t *testing.T) {
 }
 
 func TestReplaceLevelNameIgnoresNonLevelValue(t *testing.T) {
+	t.Parallel()
+
 	a := slog.String(slog.LevelKey, "weird")
 	got := replaceLevelName(nil, a)
 	if got.Key != slog.LevelKey || got.Value.String() != "weird" {
@@ -286,6 +315,8 @@ func TestReplaceLevelNameIgnoresNonLevelValue(t *testing.T) {
 }
 
 func TestReplaceLevelNamePassesThroughStandardLevels(t *testing.T) {
+	t.Parallel()
+
 	a := slog.Any(slog.LevelKey, slog.LevelInfo)
 	got := replaceLevelName(nil, a)
 	if lvl, ok := got.Value.Any().(slog.Level); !ok || lvl != slog.LevelInfo {
@@ -294,6 +325,8 @@ func TestReplaceLevelNamePassesThroughStandardLevels(t *testing.T) {
 }
 
 func TestReplaceLevelNamePassesThroughUnknownLevel(t *testing.T) {
+	t.Parallel()
+
 	a := slog.Any(slog.LevelKey, slog.Level(42))
 	got := replaceLevelName(nil, a)
 	if lvl, ok := got.Value.Any().(slog.Level); !ok || lvl != slog.Level(42) {
@@ -316,6 +349,7 @@ func captureDefaultLogger(t *testing.T) *bytes.Buffer {
 	return &buf
 }
 
+//nolint:paralleltest // mutates the default logger
 func TestPackageLevelForwarders(t *testing.T) {
 	cases := []struct {
 		name string
@@ -344,6 +378,7 @@ func TestPackageLevelForwarders(t *testing.T) {
 	}
 }
 
+//nolint:paralleltest // mutates exitFunc and the default logger
 func TestPackageLevelFatal(t *testing.T) {
 	buf := captureDefaultLogger(t)
 	origExit := exitFunc
@@ -352,7 +387,7 @@ func TestPackageLevelFatal(t *testing.T) {
 	var called bool
 	exitFunc = func(int) { called = true }
 	// exitFunc is overridden above, so control returns here.
-	Fatal("f-msg") //nolint:revive // see comment above
+	Fatal("f-msg")
 
 	if !called {
 		t.Error("Fatal did not invoke exitFunc")
@@ -363,6 +398,7 @@ func TestPackageLevelFatal(t *testing.T) {
 	}
 }
 
+//nolint:paralleltest // mutates panicFunc and the default logger
 func TestPackageLevelPanic(t *testing.T) {
 	buf := captureDefaultLogger(t)
 	origPanic := panicFunc
@@ -371,7 +407,7 @@ func TestPackageLevelPanic(t *testing.T) {
 	var captured string
 	panicFunc = func(s string) { captured = s }
 	// panicFunc is overridden above, so control returns here.
-	Panic("p-msg") //nolint:revive // see comment above
+	Panic("p-msg")
 
 	if captured != "p-msg" {
 		t.Errorf("Panic forwarded incorrectly: captured=%q", captured)

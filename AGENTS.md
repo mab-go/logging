@@ -14,7 +14,9 @@ from the standard library. The module path is `github.com/mab-go/logging`. Go
 The public surface is intentionally small: a `Logger` interface with level
 methods and field-attachment helpers, a typed `Event` value for tagging records
 with a stable identifier, context utilities for injecting a logger into a
-request, and a package-level default logger for convenience.
+request, a package-level default logger for convenience, and a choice of output
+format (`Config.Format`, or any `slog.Handler` via `Config.Handler`). The
+`awslambda` subpackage adds CloudWatch-friendly formats for AWS Lambda.
 
 The library has **no external dependencies** — only the Go standard library.
 
@@ -278,6 +280,8 @@ After any structural change, update the corresponding documentation:
 | Event semantics change                            | Key Concepts → Event type section and the README                                                                                                      |
 | New test seam added (like `exitFunc`/`panicFunc`) | Testing section in this file                                                                                                                          |
 | New Makefile target                               | Build & Lint table in this file                                                                                                                       |
+| Output format added or changed                    | Key Concepts → Output formats in this file; README "Output formats" section                                                                           |
+| New subpackage                                    | Project Structure tree and Testing section in this file; README (section and API surface)                                                             |
 | Go floor raised                                   | go.mod, README install section, the Constraints note above, the CI `floor` job, and `.golangci.yaml` `run.go` (at 1.22+, enable copyloopvar/intrange) |
 
 Only update docs when something has genuinely changed — no cosmetic edits.

@@ -46,6 +46,17 @@ event_test.go         — Event behavior across levels, field/message dual role,
                         empty Event handling
 context_test.go       — round-trip and missing-key behavior
 
+awslambda/            — CloudWatch-friendly output for AWS Lambda (stdlib-only)
+  doc.go              — package godoc: both Lambda log formats, wiring snippet
+  handler.go          — RequestIDKey, NewTextHandler (tab hybrid), NewJSONHandler,
+                        hybridHandler, lambdaKeys (timestamp/message, PANIC→FATAL)
+  config.go           — ConfigFromEnv / configFrom (AWS_LAMBDA_LOG_FORMAT,
+                        AWS_LAMBDA_LOG_LEVEL)
+  handler_test.go     — prefix layout, levels, request ID, zero time, key renames,
+                        nil options, concurrent writes
+  config_test.go      — format and level from the environment
+  example_test.go     — Example* functions for godoc (package awslambda_test)
+
 go.mod                — module github.com/mab-go/logging; go 1.21; no deps
 README.md             — usage doc with paste-ready snippet
 LICENSE               — MIT
@@ -131,6 +142,23 @@ configured level, plus `replaceLevelName` as `ReplaceAttr` so custom levels
 render as `FATAL`/`PANIC`. A custom handler should chain its own `ReplaceAttr`
 after that one. An invalid `Format` panics, like an invalid `Level`.
 
+The `awslambda` subpackage supplies `HandlerFunc`s for AWS Lambda, one per
+Lambda log format:
+
+- **`NewTextHandler`** (Lambda's Text format, the default) writes
+  `[LEVEL]\t<timestamp>\t<requestId>\t<JSON>`, the Python runtime's layout;
+  CloudWatch parses the JSON in the fourth field. The JSON is the whole record
+  (no deduplication with the prefix). Empty columns keep every line at four
+  fields.
+- **`NewJSONHandler`** (Lambda's JSON format) writes one object per line with
+  Lambda's `timestamp`/`level`/`message` keys, and PANIC as FATAL because
+  Lambda's level filtering has no PANIC.
+- **`ConfigFromEnv`** picks the handler and level from `AWS_LAMBDA_LOG_FORMAT`
+  and `AWS_LAMBDA_LOG_LEVEL`.
+
+The request ID comes from a `RequestIDKey` field the app attaches, so the
+package needs no aws-lambda-go import.
+
 ---
 
 ## Calling Conventions
@@ -154,12 +182,15 @@ after that one. An invalid `Format` panics, like an invalid `Level`.
 
 ## Testing
 
-- All tests live alongside source files (`*_test.go` in `package logging`).
+- All tests live alongside source files (`*_test.go` in `package logging`, or
+  `package awslambda` under `awslambda/`). The exception is
+  `awslambda/example_test.go`, in `package awslambda_test` so its examples read
+  as caller code.
 - Test inputs are inline Go values — no fixtures, no testdata, no helper
   packages.
 - The library has zero external dependencies; tests use only `bytes`, `context`,
   `encoding/json`, `errors`, `fmt`, `io`, `log/slog`, `os`, `strings`,
-  `testing`.
+  `sync`, `testing`, `time`, plus `logging` itself in `awslambda`.
 - **Fatal and Panic** are tested via unexported package vars `exitFunc` and
   `panicFunc`. Tests override them with capturing closures (via `t.Cleanup` to
   restore originals) so the test binary is never terminated. Do not change this
@@ -170,8 +201,14 @@ after that one. An invalid `Format` panics, like an invalid `Level`.
   line above the `func`. Parallel table subtests copy the loop variable
   (`tc := tc`): `go.mod` is `go 1.21`, where loop variables are shared across
   iterations.
+- **`awslambda`** tests get the core's real `*slog.HandlerOptions` (with the
+  FATAL/PANIC names) through a capturing `HandlerFunc` (`coreOpts`), and log
+  FATAL through `slog` directly, since `Fatal` exits. Environment parsing is
+  tested through `configFrom(getenv)` with a map, so only `TestConfigFromEnv`
+  uses `t.Setenv` (paralleltest already exempts it; no `//nolint` needed).
 - **`Example*` functions** (`Example`, `ExampleLogger_Info`,
-  `ExampleLogger_WithError`) exist for godoc discoverability. They do **not**
+  `ExampleLogger_WithError`, and in `awslambda` `Example` and
+  `ExampleNewTextHandler`) exist for godoc discoverability. They do **not**
   carry `// Output:` comments because timestamps in slog output are
   non-deterministic; the functions still compile-check the API surface.
 
@@ -213,7 +250,10 @@ actions are pinned by commit SHA with the version in a trailing comment
 - **No external dependencies.** The module is stdlib-only; do not add imports
   outside `std`.
 - **No app-specific sinks.** App-specific transports belong in the consuming
-  app, typically as a custom `slog.Handler` that callers wire in.
+  app, typically as a custom `slog.Handler` that callers wire in. Output
+  formats for a platform (like `awslambda`) may live here as stdlib-only
+  subpackages; they format records and write to `Config.Output`, nothing
+  more.
 - **No `cmd/` binaries.** This is a library; demo code lives in `Example*` test
   functions for godoc, plus a snippet in the README.
 - **Go 1.21 floor.** Do not raise the `go` directive without a concrete reason;

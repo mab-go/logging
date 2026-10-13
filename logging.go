@@ -3,6 +3,7 @@ package logging
 import (
 	"context"
 	"fmt"
+	"io"
 	"log/slog"
 	"os"
 )
@@ -35,12 +36,31 @@ func NewLogger(config Config) Logger {
 		output = os.Stderr
 	}
 
-	handler := slog.NewTextHandler(output, &slog.HandlerOptions{
+	opts := &slog.HandlerOptions{
 		Level:       config.Level.slogLevel(),
 		ReplaceAttr: replaceLevelName,
-	})
+	}
+
+	var handler slog.Handler
+	if config.Handler != nil {
+		handler = config.Handler(output, opts)
+	} else {
+		handler = newHandler(config.Format, output, opts)
+	}
 
 	return &slogLogger{logger: slog.New(handler)}
+}
+
+// newHandler returns the slog.Handler for a built-in Format.
+func newHandler(format Format, w io.Writer, opts *slog.HandlerOptions) slog.Handler {
+	switch format {
+	case FormatText:
+		return slog.NewTextHandler(w, opts)
+	case FormatJSON:
+		return slog.NewJSONHandler(w, opts)
+	default:
+		panic(fmt.Sprintf("invalid log format: %[1]d", format))
+	}
 }
 
 // NewDefaultLogger returns a new logger that uses the package's default

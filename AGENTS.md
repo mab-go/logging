@@ -25,11 +25,13 @@ The library has **no external dependencies** — only the Go standard library.
 ```
 doc.go                — package-level godoc only; no logic
 interface.go          — Logger interface + Fields type
-logging.go            — slogLogger implementation, NewLogger, formatArgs, extractEvent,
-                        Fatal/Panic test seams (exitFunc, panicFunc)
+logging.go            — slogLogger implementation, NewLogger, newHandler (built-in
+                        formats), formatArgs, extractEvent, Fatal/Panic test seams
+                        (exitFunc, panicFunc)
 level.go              — Level type, public constants (DebugLevel..PanicLevel),
                         slogLevel() mapping, custom slog.Level values for FATAL/PANIC
-config.go             — Config struct (Level, Output)
+config.go             — Config struct (Level, Output, Format, Handler), Format
+                        constants, HandlerFunc type
 event.go              — type Event string with String() and Attr() helpers
 default.go            — package-level defaultConfig/defaultLogger, SetDefaultConfig,
                         package-level forwarder functions (Debug, Info, ..., WithError)
@@ -38,7 +40,8 @@ context.go            — FromContext / NewContext using an unexported context k
 logging_test.go       — level filtering, formatArgs, WithError nil/wrapped,
                         Copy independence, SetDefaultConfig reset, Fatal/Panic via
                         exitFunc/panicFunc seams, Event.Attr() / Event.String(),
-                        Example* functions for godoc
+                        output formats and the Handler hook, Example* functions
+                        for godoc
 event_test.go         — Event behavior across levels, field/message dual role,
                         empty Event handling
 context_test.go       — round-trip and missing-key behavior
@@ -118,6 +121,16 @@ logger; tests that mutate it must save and restore the originals (see
 (returning a new default logger and `created=true` when absent). The context
 key is unexported and collision-free.
 
+### Output formats
+
+`Config.Format` picks a built-in format: `FormatText` (the zero value, slog's
+`key=value` text) or `FormatJSON` (slog JSON). `Config.Handler` is a
+`HandlerFunc` that builds any other `slog.Handler`, and it takes precedence over
+`Format`. `NewLogger` passes every handler the same `*slog.HandlerOptions`: the
+configured level, plus `replaceLevelName` as `ReplaceAttr` so custom levels
+render as `FATAL`/`PANIC`. A custom handler should chain its own `ReplaceAttr`
+after that one. An invalid `Format` panics, like an invalid `Level`.
+
 ---
 
 ## Calling Conventions
@@ -144,8 +157,9 @@ key is unexported and collision-free.
 - All tests live alongside source files (`*_test.go` in `package logging`).
 - Test inputs are inline Go values — no fixtures, no testdata, no helper
   packages.
-- The library has zero external dependencies; tests use only `bytes`, `errors`,
-  `fmt`, `os`, `strings`, `context`, `testing`.
+- The library has zero external dependencies; tests use only `bytes`, `context`,
+  `encoding/json`, `errors`, `fmt`, `io`, `log/slog`, `os`, `strings`,
+  `testing`.
 - **Fatal and Panic** are tested via unexported package vars `exitFunc` and
   `panicFunc`. Tests override them with capturing closures (via `t.Cleanup` to
   restore originals) so the test binary is never terminated. Do not change this

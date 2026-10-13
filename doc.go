@@ -4,4 +4,7 @@
 // structured context via WithField, WithFields, and WithError. An Event type
 // lifts a leading typed argument into a structured "event" field, which is
 // useful for filtering and aggregating log records by event identifier.
+//
+// Output is slog's text format by default; Config.Format selects JSON, and
+// Config.Handler accepts any other slog.Handler.
 package logging

@@ -101,6 +101,29 @@ log, _ := logging.FromContext(ctx)
 log.Info(eventStep, "doing work")
 ```
 
+## Output formats
+
+The default is slog's text format (`key=value`). Set `Format` for JSON:
+
+```go
+log := logging.NewLogger(logging.Config{Format: logging.FormatJSON})
+log.Info(eventWake, "cycle %d", 7)
+// {"time":"…","level":"INFO","msg":"cycle 7","event":"agent.wake"}
+```
+
+For any other format, set `Handler` to a function that builds a
+`slog.Handler`. It takes precedence over `Format`. The options it receives
+carry the configured level and a `ReplaceAttr` that names the `FATAL` and
+`PANIC` levels, so pass them on:
+
+```go
+log := logging.NewLogger(logging.Config{
+    Handler: func(w io.Writer, opts *slog.HandlerOptions) slog.Handler {
+        return myHandler(w, opts) // any slog.Handler
+    },
+})
+```
+
 ## API surface
 
 ```go
@@ -113,10 +136,13 @@ type Logger interface {
     Copy() Logger
 }
 
-type Config  struct{ Level Level; Output io.Writer }
+type Config  struct{ Level Level; Output io.Writer; Format Format; Handler HandlerFunc }
 type Event   string                                   // e.Attr(), e.String()
 type Fields  map[string]any
+type Format  uint8                                    // FormatText, FormatJSON
 type Level   uint8                                    // DebugLevel..PanicLevel
+
+type HandlerFunc func(w io.Writer, opts *slog.HandlerOptions) slog.Handler
 
 func NewLogger(Config) Logger
 func NewDefaultLogger() Logger

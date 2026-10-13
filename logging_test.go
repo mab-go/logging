@@ -2,8 +2,10 @@ package logging
 
 import (
 	"bytes"
+	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"log/slog"
 	"os"
 	"strings"
@@ -292,6 +294,96 @@ func TestLevelSlogLevelPanicsOnInvalid(t *testing.T) {
 		}
 	}()
 	_ = Level(99).slogLevel()
+}
+
+func TestFormatJSON(t *testing.T) {
+	t.Parallel()
+
+	var buf bytes.Buffer
+	log := NewLogger(Config{Level: DebugLevel, Output: &buf, Format: FormatJSON}).WithField("k", "v")
+
+	log.Info(Event("job.start"), "cycle %d", 7)
+	func() {
+		defer func() { _ = recover() }()
+		log.Panic("boom")
+	}()
+
+	lines := strings.Split(strings.TrimSuffix(buf.String(), "\n"), "\n")
+	if len(lines) != 2 {
+		t.Fatalf("expected 2 lines, got %d: %q", len(lines), buf.String())
+	}
+
+	want := []map[string]any{
+		{"level": "INFO", "msg": "cycle 7", "event": "job.start", "k": "v"},
+		{"level": "PANIC", "msg": "boom", "k": "v"},
+	}
+	for i, line := range lines {
+		var got map[string]any
+		if err := json.Unmarshal([]byte(line), &got); err != nil {
+			t.Fatalf("line %d is not JSON: %v: %s", i, err, line)
+		}
+		for k, v := range want[i] {
+			if got[k] != v {
+				t.Errorf("line %d: %s = %v; want %v", i, k, got[k], v)
+			}
+		}
+	}
+}
+
+func TestFormatTextIsDefault(t *testing.T) {
+	t.Parallel()
+
+	var buf bytes.Buffer
+	NewLogger(Config{Output: &buf}).Info("hello")
+
+	out := buf.String()
+	if strings.HasPrefix(out, "{") || !strings.Contains(out, "level=INFO") {
+		t.Errorf("expected text output, got: %s", out)
+	}
+}
+
+func TestHandlerOverridesFormat(t *testing.T) {
+	t.Parallel()
+
+	var (
+		buf  bytes.Buffer
+		opts *slog.HandlerOptions
+	)
+	log := NewLogger(Config{
+		Level:  WarnLevel,
+		Output: &buf,
+		Format: FormatJSON,
+		Handler: func(w io.Writer, o *slog.HandlerOptions) slog.Handler {
+			opts = o
+
+			return slog.NewTextHandler(w, o)
+		},
+	})
+	log.Warn("from handler")
+
+	if out := buf.String(); strings.HasPrefix(out, "{") || !strings.Contains(out, "from handler") {
+		t.Errorf("expected the Handler's text output, got: %s", out)
+	}
+	if opts == nil {
+		t.Fatal("Handler was not called")
+	}
+	if opts.Level == nil || opts.Level.Level() != slog.LevelWarn {
+		t.Errorf("expected opts.Level WARN, got %v", opts.Level)
+	}
+	if opts.ReplaceAttr == nil {
+		t.Error("expected opts.ReplaceAttr to be set")
+	}
+}
+
+func TestNewLoggerPanicsOnInvalidFormat(t *testing.T) {
+	t.Parallel()
+
+	defer func() {
+		if r := recover(); r == nil {
+			t.Error("expected panic for invalid Format value")
+		}
+	}()
+	NewLogger(Config{Output: io.Discard, Format: Format(99)})
 }
 
 func TestReplaceLevelNameIgnoresNonLevelKey(t *testing.T) {

@@ -124,6 +124,42 @@ log := logging.NewLogger(logging.Config{
 })
 ```
 
+### AWS Lambda
+
+The `awslambda` subpackage formats output for CloudWatch Logs, matching the
+function's Lambda log format. It uses only the standard library.
+
+- **Text format** (Lambda's default): `awslambda.NewTextHandler` writes the
+  Python runtime's layout, with the whole record as JSON in the fourth field.
+  CloudWatch parses that JSON, so `{ $.requestId = "…" }` filters and Logs
+  Insights fields work.
+
+  ```
+  [INFO]	2026-10-12T14:03:22.123Z	c6af9ac6-…	{"timestamp":"…","level":"INFO","message":"cycle 7","requestId":"c6af9ac6-…","event":"agent.wake"}
+  ```
+
+- **JSON format:** `awslambda.NewJSONHandler` writes one object per line with
+  the `timestamp`, `level` and `message` keys Lambda reads, so Lambda's
+  application log-level filtering works. `PANIC` is written as `FATAL`, since
+  Lambda has no `PANIC` level.
+
+`awslambda.ConfigFromEnv()` reads `AWS_LAMBDA_LOG_FORMAT` and
+`AWS_LAMBDA_LOG_LEVEL`, so switching the format or level in Lambda needs no
+code change. Attach the request ID per invocation:
+
+```go
+var log = logging.NewLogger(awslambda.ConfigFromEnv())
+
+func handler(ctx context.Context, event Event) error {
+    lc, _ := lambdacontext.FromContext(ctx) // github.com/aws/aws-lambda-go
+    ctx = logging.NewContext(ctx, log.WithField(awslambda.RequestIDKey, lc.AwsRequestID))
+    // ...
+}
+```
+
+Both handlers rename slog's `time` and `msg` keys to `timestamp` and
+`message`; a top-level field named `time` or `msg` is renamed too.
+
 ## API surface
 
 ```go
@@ -151,4 +187,10 @@ func FromContext(ctx) (Logger, bool)
 func NewContext(ctx, Logger) ctx
 // Plus package-level Debug/Info/.../Panic/WithField/WithFields/WithError
 // forwarding to the default logger.
+
+// Package awslambda:
+const RequestIDKey = "requestId"
+func NewTextHandler(io.Writer, *slog.HandlerOptions) slog.Handler
+func NewJSONHandler(io.Writer, *slog.HandlerOptions) slog.Handler
+func ConfigFromEnv() logging.Config
 ```
